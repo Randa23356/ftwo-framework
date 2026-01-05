@@ -15,7 +15,7 @@ use Engine\Router;
  */
 
 Router::get('/', function() {
-    return "<h1>Welcome to FTwoDev Framework</h1><p><a href='/dashboard'>Go to Dashboard</a></p>";
+    return view('welcome');
 });
 
 // Examples (Manual):
@@ -24,3 +24,4 @@ Router::get('/', function() {
 // Magic Routes (Automatic):
 // /dashboard       -> DashboardController::index()
 // /auth/login      -> AuthController::login()
+

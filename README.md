@@ -33,6 +33,20 @@ To get started with FTwoDev:
     composer dump-autoload
     ```
 
+## ⚡ FTwo Bloom (Starter Kit)
+
+Need a fast start? Install a complete Auth system with one command:
+
+```bash
+php ftwo ignite:bloom
+```
+
+It includes:
+- **AuthController** with Login & Registration logic.
+- **Modern Views** styled with the FTwo Emerald identity.
+- **Auto-Routing** integration.
+- **Users Migration** ready to go.
+
 4.  **Ignite Server**
     Start the development engine.
     ```bash

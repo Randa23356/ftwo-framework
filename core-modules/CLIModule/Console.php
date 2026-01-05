@@ -6,10 +6,12 @@ class Console
 {
     private $args;
     private $colors = [
-        'green' => "\033[32m",
-        'blue' => "\033[34m",
-        'yellow' => "\033[33m",
-        'red' => "\033[31m",
+        'green' => "\033[38;5;48m",    // Emerald
+        'blue' => "\033[38;5;45m",     // Cyan-Blue
+        'yellow' => "\033[38;5;220m",   // Gold
+        'red' => "\033[38;5;196m",      // Critical Red
+        'gray' => "\033[38;5;244m",     // Slate Gray
+        'white' => "\033[1;37m",        // Bold White
         'reset' => "\033[0m"
     ];
 
@@ -20,9 +22,8 @@ class Console
 
     public function run()
     {
-        $this->banner();
-
         if (!isset($this->args[1])) {
+            $this->banner();
             $this->help();
             return;
         }
@@ -51,121 +52,128 @@ class Console
             case 'ignite:rollback':
                 $this->rollback();
                 break;
-            case 'ignite': // Creative rename for serve
-            case 'serve':  // Keep strict alias
+            case 'ignite:bloom':
+                $this->installBloom();
+                break;
+            case 'ignite':
+            case 'serve':
                 $this->serve();
                 break;
             default:
-                echo "{$this->colors['red']}Unknown command: $command{$this->colors['reset']}\n";
+                $this->banner();
+                $this->error("Unknown command: $command");
                 $this->help();
         }
     }
 
     private function banner()
     {
-        echo $this->colors['blue'];
-        echo "
-    ___________               ________               
-    \_   _____/___________  __\______ \   _______  __
-     |    __)   \____ \_  \/ / |    |  \_/ __ \  \/ /
-     |     \    |  |_> >    /  |    `   \  ___/\   / 
-     \___  /    |   __/ \/\_/ /_______  /\___  >\_/  
-         \/     |__|                  \/     \/      
-        ";
-        echo $this->colors['reset'] . "\n\n";
+        echo "\n";
+        echo "  {$this->colors['green']} ███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ███████╗██╗   ██╗ {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} ██╔════╝╚══██╔══╝██║    ██║██╔═══██╗██╔══██╗██╔════╝██║   ██║ {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} █████╗     ██║   ██║ █╗ ██║██║   ██║██║  ██║█████╗  ██║   ██║ {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} ██╔══╝     ██║   ██║███╗██║██║   ██║██║  ██║██╔══╝  ╚██╗ ██╔╝ {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} ██║        ██║   ╚███╔███╔╝╚██████╔╝██████╔╝███████╗ ╚████╔╝  {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} ╚═╝        ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═════╝ ╚══════╝  ╚═══╝   {$this->colors['reset']}\n";
+        echo "  {$this->colors['gray']} ---------------------------------------------------------------- {$this->colors['reset']}\n";
+        echo "  {$this->colors['white']}   FTwoDev Engine v1.2.0 {$this->colors['gray']} | {$this->colors['green']} Advanced Native PHP Framework {$this->colors['reset']}\n\n";
     }
 
     private function help()
     {
-        echo "{$this->colors['yellow']}Usage:{$this->colors['reset']}\n";
-        echo "  php ftwo ignite                Start the development server\n";
-        echo "  php ftwo ignite:migrate        Run database migrations\n";
-        echo "  php ftwo ignite:rollback       Rollback last migration\n";
-        echo "  php ftwo craft:controller Name Create a new controller\n";
-        echo "  php ftwo craft:model Name      Create a new model\n";
-        echo "  php ftwo craft:view Name       Create a new view\n";
-        echo "  php ftwo craft:service Name    Create a new service\n";
-        echo "  php ftwo craft:migration Name  Create a new migration\n";
+        echo "  {$this->colors['white']}USAGE:{$this->colors['reset']} php ftwo <command> [arguments]\n\n";
+
+        echo "  {$this->colors['blue']}IGNITE (System){$this->colors['reset']}\n";
+        echo "    {$this->colors['green']}ignite{$this->colors['reset']}              Start development engine\n";
+        echo "    {$this->colors['green']}ignite:migrate{$this->colors['reset']}      Run database migrations\n";
+        echo "    {$this->colors['green']}ignite:rollback{$this->colors['reset']}     Rollback last migration batch\n";
+        echo "    {$this->colors['green']}ignite:bloom{$this->colors['reset']}        Plant Bloom Auth Starter Kit\n\n";
+
+        echo "  {$this->colors['blue']}CRAFT (Scaffolding){$this->colors['reset']}\n";
+        echo "    {$this->colors['green']}craft:controller{$this->colors['reset']}   Create a new Controller\n";
+        echo "    {$this->colors['green']}craft:model{$this->colors['reset']}        Create a new Model\n";
+        echo "    {$this->colors['green']}craft:view{$this->colors['reset']}         Create a new View\n";
+        echo "    {$this->colors['green']}craft:service{$this->colors['reset']}      Create a new Service class\n";
+        echo "    {$this->colors['green']}craft:migration{$this->colors['reset']}    Create a new Migration file\n\n";
     }
+
+    private function success($msg) { echo "  {$this->colors['green']}✔ SUCCESS:{$this->colors['reset']} $msg\n"; }
+    private function info($msg) { echo "  {$this->colors['blue']}ℹ INFO:{$this->colors['reset']} $msg\n"; }
+    private function warning($msg) { echo "  {$this->colors['yellow']}⚠ WARNING:{$this->colors['reset']} $msg\n"; }
+    private function error($msg) { echo "  {$this->colors['red']}✖ ERROR:{$this->colors['reset']} $msg\n"; }
 
     private function serve()
     {
         $port = 8000;
-        echo "{$this->colors['green']}🔥 FTwoDev engine currently running at http://localhost:$port{$this->colors['reset']}\n";
-        echo "{$this->colors['yellow']}Press Ctrl+C to stop the engine.{$this->colors['reset']}\n";
+        $this->banner();
+        $this->success("FTwoDev engine ignited at {$this->colors['white']}http://localhost:$port{$this->colors['reset']}");
+        $this->info("Press Ctrl+C to stop the engine.");
         passthru("php -S localhost:$port -t " . __DIR__ . '/../../public');
     }
 
     private function makeController($name)
     {
-        if (!$name) die("{$this->colors['red']}Error: Name required.{$this->colors['reset']}\n");
+        if (!$name) die($this->error("Name required."));
         $path = __DIR__ . '/../../projects/Controllers/' . $name . '.php';
-        if (file_exists($path)) die("{$this->colors['red']}Error: Controller already exists.{$this->colors['reset']}\n");
+        if (file_exists($path)) die($this->error("Controller $name already exists."));
 
         $template = "<?php\n\nnamespace Projects\\Controllers;\n\nuse Engine\\ControllerBase;\n\nclass $name extends ControllerBase\n{\n    public function index()\n    {\n        return \$this->view('welcome');\n    }\n}\n";
         
         file_put_contents($path, $template);
-        echo "{$this->colors['green']}Controller $name crafted successfully.{$this->colors['reset']}\n";
+        $this->success("Controller $name crafted successfully.");
     }
 
     private function makeModel($name)
     {
-        if (!$name) die("{$this->colors['red']}Error: Name required.{$this->colors['reset']}\n");
+        if (!$name) die($this->error("Name required."));
         $path = __DIR__ . '/../../projects/Models/' . $name . '.php';
-        if (file_exists($path)) die("{$this->colors['red']}Error: Model already exists.{$this->colors['reset']}\n");
+        if (file_exists($path)) die($this->error("Model $name already exists."));
 
         $template = "<?php\n\nnamespace Projects\\Models;\n\nuse Engine\\ModelBase;\n\nclass $name extends ModelBase\n{\n    protected \$table = '" . strtolower($name) . "s';\n}\n";
         
         file_put_contents($path, $template);
-        echo "{$this->colors['green']}Model $name crafted successfully.{$this->colors['reset']}\n";
+        $this->success("Model $name crafted successfully.");
     }
 
     private function makeView($name)
     {
-        if (!$name) die("{$this->colors['red']}Error: Name required.{$this->colors['reset']}\n");
+        if (!$name) die($this->error("Name required."));
         $path = __DIR__ . '/../../projects/Views/' . $name . '.ftwo.php';
-        if (file_exists($path)) die("{$this->colors['red']}Error: View already exists.{$this->colors['reset']}\n");
+        if (file_exists($path)) die($this->error("View $name already exists."));
 
         $template = "<h1>$name</h1>\n<p>Welcome to $name view.</p>";
         
         file_put_contents($path, $template);
-        echo "{$this->colors['green']}View $name crafted successfully.{$this->colors['reset']}\n";
+        $this->success("View $name crafted successfully.");
     }
 
     private function makeService($name)
     {
-        if (!$name) die("{$this->colors['red']}Error: Name required.{$this->colors['reset']}\n");
+        if (!$name) die($this->error("Name required."));
         $path = __DIR__ . '/../../projects/Services/' . $name . '.php';
-        
-        if (!file_exists(dirname($path))) {
-            mkdir(dirname($path), 0755, true);
-        }
-
-        if (file_exists($path)) die("{$this->colors['red']}Error: Service already exists.{$this->colors['reset']}\n");
+        if (!file_exists(dirname($path))) mkdir(dirname($path), 0755, true);
+        if (file_exists($path)) die($this->error("Service $name already exists."));
 
         $template = "<?php\n\nnamespace Projects\\Services;\n\nclass $name\n{\n    public function execute()\n    {\n        // ...\n    }\n}\n";
         
         file_put_contents($path, $template);
-        echo "{$this->colors['green']}Service $name crafted successfully.{$this->colors['reset']}\n";
+        $this->success("Service $name crafted successfully.");
     }
 
     private function makeMigration($name)
     {
-        if (!$name) die("{$this->colors['red']}Error: Name required.{$this->colors['reset']}\n");
+        if (!$name) die($this->error("Name required."));
         $timestamp = date('Y_m_d_His');
         $fileName = $timestamp . '_' . $name . '.php';
         $path = __DIR__ . '/../../projects/Migrations/' . $fileName;
 
-        if (!file_exists(dirname($path))) {
-            mkdir(dirname($path), 0755, true);
-        }
+        if (!file_exists(dirname($path))) mkdir(dirname($path), 0755, true);
 
         $className = str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
-        
         $template = "<?php\n\nnamespace Projects\\Migrations;\n\nuse Engine\\MigrationBase;\n\nclass $className extends MigrationBase\n{\n    public function up()\n    {\n        // \$this->execute(\"CREATE TABLE ...\");\n    }\n\n    public function down()\n    {\n        // \$this->execute(\"DROP TABLE ...\");\n    }\n}\n";
 
         file_put_contents($path, $template);
-        echo "{$this->colors['green']}Migration $fileName crafted successfully.{$this->colors['reset']}\n";
+        $this->success("Migration $fileName crafted successfully.");
     }
 
     private function migrate()
@@ -195,14 +203,12 @@ class Console
                 $stmt = $db->prepare("INSERT INTO migrations (migration, batch) VALUES (?, ?)");
                 $stmt->execute([$name, $batch]);
                 
-                echo "{$this->colors['green']}Migrated: $name{$this->colors['reset']}\n";
+                $this->success("Migrated: $name");
                 $count++;
             }
         }
 
-        if ($count === 0) {
-            echo "{$this->colors['yellow']}Nothing to migrate.{$this->colors['reset']}\n";
-        }
+        if ($count === 0) $this->warning("Nothing to migrate.");
     }
 
     private function rollback()
@@ -214,7 +220,7 @@ class Console
         $lastBatch = $stmt->fetchColumn();
 
         if (!$lastBatch) {
-            echo "{$this->colors['yellow']}Nothing to rollback.{$this->colors['reset']}\n";
+            $this->warning("Nothing to rollback.");
             return;
         }
 
@@ -235,7 +241,7 @@ class Console
                 $stmt = $db->prepare("DELETE FROM migrations WHERE migration = ?");
                 $stmt->execute([$name]);
 
-                echo "{$this->colors['yellow']}Rolled back: $name{$this->colors['reset']}\n";
+                $this->warning("Rolled back: $name");
             }
         }
     }
@@ -256,5 +262,46 @@ class Console
         $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
         return new \PDO($dsn, $config['username'], $config['password'], $config['options']);
     }
+
+    private function installBloom()
+    {
+        $this->info("Planting FTwo Bloom Starter Kit... 🌸");
+
+        $stubPath = __DIR__ . '/stubs/Auth/';
+        $projectPath = __DIR__ . '/../../projects/';
+        $corePath = __DIR__ . '/../../core-modules/';
+
+        if (!file_exists($corePath . 'AuthModule')) mkdir($corePath . 'AuthModule', 0755, true);
+        copy($stubPath . 'Module/Auth.stub', $corePath . 'AuthModule/Auth.php');
+
+        copy($stubPath . 'AuthController.stub', $projectPath . 'Controllers/AuthController.php');
+        
+        if (!file_exists($projectPath . 'Views/auth')) mkdir($projectPath . 'Views/auth', 0755, true);
+        copy($stubPath . 'login.stub', $projectPath . 'Views/auth/login.ftwo.php');
+        copy($stubPath . 'register.stub', $projectPath . 'Views/auth/register.ftwo.php');
+
+        copy($stubPath . 'AuthMiddleware.stub', $projectPath . 'Middlewares/AuthMiddleware.php');
+
+        copy($stubPath . 'DashboardController.stub', $projectPath . 'Controllers/DashboardController.php');
+        copy($stubPath . 'dashboard.stub', $projectPath . 'Views/dashboard.ftwo.php');
+
+        $timestamp = date('Y_m_d_His');
+        copy($stubPath . 'migration.stub', $projectPath . 'Migrations/' . $timestamp . '_create_users_table.php');
+
+        $routeFile = __DIR__ . '/../../config/routes.php';
+        $authRoutes = "\n// Auth Routes (Bloom)\n" .
+                      "Router::get('/login', 'AuthController@showLogin');\n" .
+                      "Router::post('/login', 'AuthController@login');\n" .
+                      "Router::get('/register', 'AuthController@showRegister');\n" .
+                      "Router::post('/register', 'AuthController@register');\n" .
+                      "Router::post('/logout', 'AuthController@logout');\n" .
+                      "Router::get('/dashboard', 'DashboardController@index');\n";
+        
+        file_put_contents($routeFile, $authRoutes, FILE_APPEND);
+
+        $this->success("FTwo Bloom installed successfully!");
+        $this->info("Run 'php ftwo ignite:migrate' to create users table.");
+    }
 }
+
 

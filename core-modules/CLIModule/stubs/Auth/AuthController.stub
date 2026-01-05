@@ -1,0 +1,60 @@
+<?php
+
+namespace Projects\Controllers;
+
+use Engine\ControllerBase;
+use CoreModules\AuthModule\Auth;
+use Projects\Models\User;
+
+class AuthController extends ControllerBase
+{
+    public function showLogin()
+    {
+        return $this->view('auth/login');
+    }
+
+    public function login()
+    {
+        $username = $this->input('username');
+        $password = $this->input('password');
+
+        if (Auth::attempt($username, $password)) {
+            return redirect('/dashboard');
+        }
+
+        return $this->view('auth/login', ['error' => 'Invalid credentials']);
+    }
+
+    public function showRegister()
+    {
+        return $this->view('auth/register');
+    }
+
+    public function register()
+    {
+        $username = $this->input('username');
+        $email = $this->input('email');
+        $password = $this->input('password');
+
+        // Simple validation
+        if (!$username || !$email || !$password) {
+            return $this->view('auth/register', ['error' => 'All fields are required']);
+        }
+
+        $db = new \Engine\ModelBase();
+        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+
+        $db->query("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", [
+            $username, $email, $hashedPassword
+        ]);
+
+        Auth::attempt($username, $password);
+        return redirect('/dashboard');
+    }
+
+    public function logout()
+    {
+        Auth::logout();
+        return redirect('/');
+    }
+}
