@@ -139,7 +139,14 @@ class Console
     private function makeController($name)
     {
         if (!$name) die($this->error("Name required."));
-        $path = __DIR__ . '/../../projects/Controllers/' . $name . '.php';
+        
+        // Ensure directory exists
+        $dir = __DIR__ . '/../../projects/Controllers';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        $path = $dir . '/' . $name . '.php';
         if (file_exists($path)) die($this->error("Controller $name already exists."));
 
         $template = "<?php\n\nnamespace Projects\\Controllers;\n\nuse Engine\\ControllerBase;\n\nclass $name extends ControllerBase\n{\n    public function index()\n    {\n        return \$this->view('welcome');\n    }\n}\n";
@@ -151,10 +158,17 @@ class Console
     private function makeModel($name)
     {
         if (!$name) die($this->error("Name required."));
-        $path = __DIR__ . '/../../projects/Models/' . $name . '.php';
+        
+        // Ensure directory exists
+        $dir = __DIR__ . '/../../projects/Models';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        $path = $dir . '/' . $name . '.php';
         if (file_exists($path)) die($this->error("Model $name already exists."));
 
-        $template = "<?php\n\nnamespace Projects\\Models;\n\nuse Engine\\ModelBase;\n\nclass $name extends ModelBase\n{\n    protected \$table = '" . strtolower($name) . "s';\n}\n";
+        $template = "<?php\n\nnamespace Projects\\Models;\n\nuse Engine\\ModelBase;\n\nclass $name extends ModelBase\n{\n    protected \$table = '" . strtolower($name) . "s';\n    protected \$timestamps = true;\n    protected \$softDeletes = false;\n}\n";
         
         file_put_contents($path, $template);
         $this->success("Model $name crafted successfully.");
@@ -163,7 +177,14 @@ class Console
     private function makeView($name)
     {
         if (!$name) die($this->error("Name required."));
-        $path = __DIR__ . '/../../projects/Views/' . $name . '.ftwo.php';
+        
+        // Ensure directory exists
+        $dir = __DIR__ . '/../../projects/Views';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        $path = $dir . '/' . $name . '.ftwo.php';
         if (file_exists($path)) die($this->error("View $name already exists."));
 
         $template = "<h1>$name</h1>\n<p>Welcome to $name view.</p>";
@@ -175,8 +196,14 @@ class Console
     private function makeService($name)
     {
         if (!$name) die($this->error("Name required."));
-        $path = __DIR__ . '/../../projects/Services/' . $name . '.php';
-        if (!file_exists(dirname($path))) mkdir(dirname($path), 0755, true);
+        
+        // Ensure directory exists
+        $dir = __DIR__ . '/../../projects/Services';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        $path = $dir . '/' . $name . '.php';
         if (file_exists($path)) die($this->error("Service $name already exists."));
 
         $template = "<?php\n\nnamespace Projects\\Services;\n\nclass $name\n{\n    public function execute()\n    {\n        // ...\n    }\n}\n";
@@ -190,9 +217,14 @@ class Console
         if (!$name) die($this->error("Name required."));
         $timestamp = date('Y_m_d_His');
         $fileName = $timestamp . '_' . $name . '.php';
-        $path = __DIR__ . '/../../projects/Migrations/' . $fileName;
-
-        if (!file_exists(dirname($path))) mkdir(dirname($path), 0755, true);
+        
+        // Ensure directory exists
+        $dir = __DIR__ . '/../../projects/Migrations';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        $path = $dir . '/' . $fileName;
 
         $className = str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
         $template = "<?php\n\nnamespace Projects\\Migrations;\n\nuse Engine\\MigrationBase;\n\nclass $className extends MigrationBase\n{\n    public function up()\n    {\n        // \$this->execute(\"CREATE TABLE ...\");\n    }\n\n    public function down()\n    {\n        // \$this->execute(\"DROP TABLE ...\");\n    }\n}\n";
@@ -300,6 +332,16 @@ class Console
         if (!is_dir($stubsPath)) {
             $this->error("Auth stubs not found. Framework installation may be incomplete.");
             return;
+        }
+        
+        // Create necessary directories
+        $directories = ['Controllers', 'Models', 'Middlewares', 'Migrations'];
+        foreach ($directories as $dir) {
+            $fullPath = $projectsPath . $dir;
+            if (!is_dir($fullPath)) {
+                mkdir($fullPath, 0755, true);
+                $this->info("Created directory: {$dir}");
+            }
         }
         
         // 1. Create AuthController
