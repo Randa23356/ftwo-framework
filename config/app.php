@@ -6,5 +6,5 @@ return [
     'debug' => true,
     'url' => 'http://localhost:8000',
     'timezone' => 'Asia/Jakarta',
-    'key' => 'base64:vHyF7NOT2/1CU8xMbgDsD/sqWV24Y7v4q4df/8LHYek=',
+    'key' => 'base64:GENERATE_YOUR_OWN_KEY_HERE',
 ];

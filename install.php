@@ -84,6 +84,10 @@ foreach ($directories as $dir) {
 }
 echo "  {$colors['green']}✔{$colors['reset']} Directory structure verified.\n";
 
+// Run composer dump-autoload to ensure classes are loaded
+echo "  {$colors['green']}✔{$colors['reset']} Refreshing autoload classes...\n";
+shell_exec('composer dump-autoload');
+
 // Run Bloom if selected
 if ($installBloom) {
     echo "  {$colors['green']}✔{$colors['reset']} Executing Bloom installation...\n";

@@ -55,6 +55,9 @@ class Console
             case 'ignite:bloom':
                 $this->installBloom();
                 break;
+            case 'ignite:setup':
+                $this->setupFramework();
+                break;
             case 'ignite:refresh':
                 $this->refresh();
                 break;
@@ -91,6 +94,7 @@ class Console
         echo "    {$this->colors['green']}ignite:migrate{$this->colors['reset']}      Run database migrations\n";
         echo "    {$this->colors['green']}ignite:rollback{$this->colors['reset']}     Rollback last migration batch\n";
         echo "    {$this->colors['green']}ignite:bloom{$this->colors['reset']}        Plant Bloom Auth Starter Kit\n";
+        echo "    {$this->colors['green']}ignite:setup{$this->colors['reset']}        Setup basic framework structure\n";
     echo "    {$this->colors['green']}ignite:refresh{$this->colors['reset']}      Refresh & sync framework classes\n\n";
 
         echo "  {$this->colors['blue']}CRAFT (Scaffolding){$this->colors['reset']}\n";
@@ -269,7 +273,226 @@ class Console
 
     private function installBloom()
     {
-        // ... (existing code omitted for brevity in replacement but remains in file)
+        $this->banner();
+        $this->info("🌸 Installing Bloom Auth Starter Kit...");
+        
+        $stubsPath = __DIR__ . '/stubs/Auth/';
+        $projectsPath = __DIR__ . '/../../projects/';
+        
+        // Check if stubs exist
+        if (!is_dir($stubsPath)) {
+            $this->error("Auth stubs not found. Framework installation may be incomplete.");
+            return;
+        }
+        
+        // 1. Create AuthController
+        $this->info("Creating AuthController...");
+        $authControllerStub = file_get_contents($stubsPath . 'AuthController.stub');
+        file_put_contents($projectsPath . 'Controllers/AuthController.php', $authControllerStub);
+        $this->success("AuthController created successfully.");
+        
+        // 2. Create DashboardController
+        if (file_exists($stubsPath . 'DashboardController.stub')) {
+            $this->info("Creating DashboardController...");
+            $dashboardControllerStub = file_get_contents($stubsPath . 'DashboardController.stub');
+            file_put_contents($projectsPath . 'Controllers/DashboardController.php', $dashboardControllerStub);
+            $this->success("DashboardController created successfully.");
+        }
+        
+        // 3. Create AuthMiddleware
+        if (file_exists($stubsPath . 'AuthMiddleware.stub')) {
+            $this->info("Creating AuthMiddleware...");
+            $authMiddlewareStub = file_get_contents($stubsPath . 'AuthMiddleware.stub');
+            file_put_contents($projectsPath . 'Middlewares/AuthMiddleware.php', $authMiddlewareStub);
+            $this->success("AuthMiddleware created successfully.");
+        }
+        
+        // 4. Create User Migration
+        $this->info("Creating User migration...");
+        $timestamp = date('Y_m_d_His');
+        $migrationFileName = $timestamp . '_create_users_table.php';
+        $migrationStub = file_get_contents($stubsPath . 'migration.stub');
+        file_put_contents($projectsPath . 'Migrations/' . $migrationFileName, $migrationStub);
+        $this->success("User migration created: $migrationFileName");
+        
+        // 5. Create Auth Views
+        $viewsPath = $projectsPath . 'Views/auth/';
+        if (!is_dir($viewsPath)) {
+            mkdir($viewsPath, 0755, true);
+        }
+        
+        // Login view
+        if (file_exists($stubsPath . 'login.stub')) {
+            $this->info("Creating login view...");
+            $loginStub = file_get_contents($stubsPath . 'login.stub');
+            file_put_contents($viewsPath . 'login.ftwo.php', $loginStub);
+            $this->success("Login view created successfully.");
+        }
+        
+        // Register view
+        if (file_exists($stubsPath . 'register.stub')) {
+            $this->info("Creating register view...");
+            $registerStub = file_get_contents($stubsPath . 'register.stub');
+            file_put_contents($viewsPath . 'register.ftwo.php', $registerStub);
+            $this->success("Register view created successfully.");
+        }
+        
+        // Dashboard view
+        if (file_exists($stubsPath . 'dashboard.stub')) {
+            $this->info("Creating dashboard view...");
+            $dashboardStub = file_get_contents($stubsPath . 'dashboard.stub');
+            file_put_contents($viewsPath . 'dashboard.ftwo.php', $dashboardStub);
+            $this->success("Dashboard view created successfully.");
+        }
+        
+        // 6. Create Auth Module (if exists)
+        $moduleStubPath = $stubsPath . 'Module/';
+        if (is_dir($moduleStubPath)) {
+            $authModulePath = __DIR__ . '/../AuthModule/';
+            if (!is_dir($authModulePath)) {
+                mkdir($authModulePath, 0755, true);
+            }
+            
+            $moduleFiles = glob($moduleStubPath . '*.stub');
+            foreach ($moduleFiles as $moduleFile) {
+                $fileName = basename($moduleFile, '.stub') . '.php';
+                $this->info("Creating Auth module: $fileName");
+                $moduleContent = file_get_contents($moduleFile);
+                file_put_contents($authModulePath . $fileName, $moduleContent);
+                $this->success("Auth module $fileName created successfully.");
+            }
+        }
+        
+        // 7. Update routes (basic auth routes)
+        $this->info("Adding auth routes...");
+        $routesFile = __DIR__ . '/../../config/routes.php';
+        if (file_exists($routesFile)) {
+            $routesContent = file_get_contents($routesFile);
+            
+            // Check if auth routes already exist
+            if (strpos($routesContent, '/login') === false) {
+                $authRoutes = "\n\n// Auth Routes (Added by Bloom)\n";
+                $authRoutes .= "\$router->get('/login', 'AuthController@showLogin');\n";
+                $authRoutes .= "\$router->post('/login', 'AuthController@login');\n";
+                $authRoutes .= "\$router->get('/register', 'AuthController@showRegister');\n";
+                $authRoutes .= "\$router->post('/register', 'AuthController@register');\n";
+                $authRoutes .= "\$router->get('/logout', 'AuthController@logout');\n";
+                $authRoutes .= "\$router->get('/dashboard', 'DashboardController@index');\n";
+                
+                // Add before the closing PHP tag or at the end
+                if (strpos($routesContent, '?>') !== false) {
+                    $routesContent = str_replace('?>', $authRoutes . "\n?>", $routesContent);
+                } else {
+                    $routesContent .= $authRoutes;
+                }
+                
+                file_put_contents($routesFile, $routesContent);
+                $this->success("Auth routes added to routes.php");
+            } else {
+                $this->warning("Auth routes already exist in routes.php");
+            }
+        }
+        
+        echo "\n";
+        $this->success("🌸 Bloom Auth Starter Kit installed successfully!");
+        echo "\n  {$this->colors['white']}NEXT STEPS:{$this->colors['reset']}\n";
+        echo "  1. {$this->colors['blue']}php ftwo ignite:migrate{$this->colors['reset']}     - Run the user migration\n";
+        echo "  2. {$this->colors['blue']}php ftwo ignite:refresh{$this->colors['reset']}     - Refresh autoload classes\n";
+        echo "  3. {$this->colors['blue']}php ftwo ignite{$this->colors['reset']}             - Start your development server\n";
+        echo "\n  {$this->colors['white']}AUTH ROUTES AVAILABLE:{$this->colors['reset']}\n";
+        echo "  • {$this->colors['green']}/login{$this->colors['reset']}      - Login page\n";
+        echo "  • {$this->colors['green']}/register{$this->colors['reset']}   - Registration page\n";
+        echo "  • {$this->colors['green']}/dashboard{$this->colors['reset']}  - Protected dashboard\n";
+        echo "  • {$this->colors['green']}/logout{$this->colors['reset']}     - Logout\n\n";
+    }
+
+    private function setupFramework()
+    {
+        $this->banner();
+        $this->info("🚀 Setting up basic framework structure...");
+        
+        $projectsPath = __DIR__ . '/../../projects/';
+        
+        // 1. Create WelcomeController
+        $welcomeControllerPath = $projectsPath . 'Controllers/WelcomeController.php';
+        if (!file_exists($welcomeControllerPath)) {
+            $this->info("Creating WelcomeController...");
+            $welcomeControllerContent = "<?php\n\nnamespace Projects\\Controllers;\n\nuse Engine\\ControllerBase;\n\nclass WelcomeController extends ControllerBase\n{\n    public function index()\n    {\n        return \$this->view('welcome');\n    }\n}\n";
+            file_put_contents($welcomeControllerPath, $welcomeControllerContent);
+            $this->success("WelcomeController created successfully.");
+        } else {
+            $this->warning("WelcomeController already exists.");
+        }
+        
+        // 2. Create HomeController
+        $homeControllerPath = $projectsPath . 'Controllers/HomeController.php';
+        if (!file_exists($homeControllerPath)) {
+            $this->info("Creating HomeController...");
+            $homeControllerContent = "<?php\n\nnamespace Projects\\Controllers;\n\nuse Engine\\ControllerBase;\n\nclass HomeController extends ControllerBase\n{\n    public function index()\n    {\n        return \$this->view('welcome');\n    }\n\n    public function about()\n    {\n        return \$this->view('about');\n    }\n}\n";
+            file_put_contents($homeControllerPath, $homeControllerContent);
+            $this->success("HomeController created successfully.");
+        } else {
+            $this->warning("HomeController already exists.");
+        }
+        
+        // 3. Create about view
+        $aboutViewPath = $projectsPath . 'Views/about.ftwo.php';
+        if (!file_exists($aboutViewPath)) {
+            $this->info("Creating about view...");
+            $aboutViewContent = "@extends('layout')\n\n@section('title', 'About')\n\n@section('content')\n<div class=\"container\">\n    <h1>About FTwoDev Framework</h1>\n    <p>This is a lightweight native PHP framework designed for rapid development.</p>\n    <p>Visit <a href=\"/\">Home</a> to get started.</p>\n    <p>Need authentication? Run <code>php ftwo ignite:bloom</code></p>\n</div>\n@endsection";
+            file_put_contents($aboutViewPath, $aboutViewContent);
+            $this->success("About view created successfully.");
+        } else {
+            $this->warning("About view already exists.");
+        }
+        
+        // 4. Update routes
+        $this->info("Updating routes...");
+        $routesFile = __DIR__ . '/../../config/routes.php';
+        if (file_exists($routesFile)) {
+            $routesContent = file_get_contents($routesFile);
+            
+            // Replace closure route with controller route
+            if (strpos($routesContent, "Router::get('/', function()") !== false) {
+                $routesContent = str_replace(
+                    "Router::get('/', function() {\n    return view('welcome');\n});",
+                    "Router::get('/', 'WelcomeController@index');",
+                    $routesContent
+                );
+                $this->success("Updated home route to use WelcomeController.");
+            }
+            
+            // Add about route if it doesn't exist
+            if (strpos($routesContent, '/about') === false) {
+                $defaultRoutes = "\n// Default Routes\nRouter::get('/about', 'HomeController@about');\n";
+                
+                if (strpos($routesContent, '// Examples (Manual):') !== false) {
+                    $routesContent = str_replace('// Examples (Manual):', $defaultRoutes . "\n// Examples (Manual):", $routesContent);
+                } else {
+                    $routesContent .= $defaultRoutes;
+                }
+                
+                file_put_contents($routesFile, $routesContent);
+                $this->success("Default routes added.");
+            } else {
+                $this->warning("Default routes already exist.");
+            }
+        }
+        
+        // 5. Refresh autoload
+        $this->info("Refreshing autoload classes...");
+        shell_exec('composer dump-autoload');
+        $this->success("Autoload refreshed successfully.");
+        
+        echo "\n";
+        $this->success("🚀 Basic framework structure setup complete!");
+        echo "\n  {$this->colors['white']}AVAILABLE ROUTES:{$this->colors['reset']}\n";
+        echo "  • {$this->colors['green']}/{$this->colors['reset']}         - Welcome page (WelcomeController)\n";
+        echo "  • {$this->colors['green']}/about{$this->colors['reset']}    - About page (HomeController)\n";
+        echo "\n  {$this->colors['white']}NEXT STEPS:{$this->colors['reset']}\n";
+        echo "  1. {$this->colors['blue']}php ftwo ignite{$this->colors['reset']}             - Start development server\n";
+        echo "  2. {$this->colors['blue']}php ftwo ignite:bloom{$this->colors['reset']}       - Add authentication (optional)\n";
+        echo "  3. {$this->colors['blue']}php ftwo craft:controller{$this->colors['reset']}   - Create new controllers\n\n";
     }
 
     private function refresh()
