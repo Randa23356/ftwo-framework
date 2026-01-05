@@ -23,6 +23,6 @@ class DashboardController extends ControllerBase
             ]
         ];
 
-        return $this->view('dashboard', $data);
+        return $this->view('auth/dashboard', $data);
     }
 }
