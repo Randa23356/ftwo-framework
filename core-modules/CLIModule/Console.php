@@ -337,7 +337,7 @@ class Console
         
         try {
             // Test connection without database first
-            $dsn = "mysql:host={$config['host']};charset={$config['charset']}";
+            $dsn = "mysql:host={$config['host']};port={$config['port']};charset={$config['charset']}";
             $pdo = new \PDO($dsn, $config['username'], $config['password'], $config['options']);
             $this->success("✅ MySQL server is running and accessible!");
             
@@ -347,7 +347,7 @@ class Console
                 $this->success("✅ Database '{$config['dbname']}' exists!");
                 
                 // Test full connection
-                $fullDsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
+                $fullDsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
                 $fullPdo = new \PDO($fullDsn, $config['username'], $config['password'], $config['options']);
                 $this->success("✅ Full database connection successful!");
                 
@@ -393,7 +393,7 @@ class Console
         
         try {
             // Connect without database
-            $dsn = "mysql:host={$config['host']};charset={$config['charset']}";
+            $dsn = "mysql:host={$config['host']};port={$config['port']};charset={$config['charset']}";
             $pdo = new \PDO($dsn, $config['username'], $config['password'], $config['options']);
             
             // Create database if not exists
@@ -401,7 +401,7 @@ class Console
             $this->success("✅ Database '{$config['dbname']}' created successfully!");
             
             // Test full connection
-            $fullDsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
+            $fullDsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
             $fullPdo = new \PDO($fullDsn, $config['username'], $config['password'], $config['options']);
             $this->success("✅ Database connection test passed!");
             
@@ -427,7 +427,7 @@ class Console
     private function getDatabaseConnection()
     {
         $config = require __DIR__ . '/../../config/database.php';
-        $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
+        $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
         
         try {
             return new \PDO($dsn, $config['username'], $config['password'], $config['options']);
@@ -451,6 +451,7 @@ class Console
             
             $this->info("Check your .env file configuration:");
             $this->info("DB_HOST={$config['host']}");
+            $this->info("DB_PORT={$config['port']}");
             $this->info("DB_DATABASE={$config['dbname']}");
             $this->info("DB_USERNAME={$config['username']}");
             

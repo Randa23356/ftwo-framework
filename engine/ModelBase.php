@@ -41,12 +41,20 @@ class ModelBase
         }
     }
 
+    public function getConnection()
+    {
+        if (!self::$db) {
+            $this->connect();
+        }
+        return self::$db;
+    }
+
     private function connect()
     {
         $config = \Engine\Boot::config('database');
         
         try {
-            $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
+            $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
             self::$db = new PDO($dsn, $config['username'], $config['password']);
             self::$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             self::$db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);

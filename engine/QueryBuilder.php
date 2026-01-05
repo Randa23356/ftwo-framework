@@ -17,10 +17,20 @@ class QueryBuilder
     protected $bindings = [];
     protected $operation = 'SELECT';
 
-    public function __construct($table, $db)
+    public function __construct($table = null, $db = null)
     {
         $this->table = $table;
-        $this->db = $db;
+        $this->db = $db ?: $this->getDefaultConnection();
+    }
+
+    private function getDefaultConnection()
+    {
+        if (!$this->db) {
+            // Get database connection from ModelBase
+            $modelBase = new \Engine\ModelBase();
+            return $modelBase->getConnection();
+        }
+        return $this->db;
     }
 
     // SELECT operations
