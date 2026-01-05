@@ -2,8 +2,12 @@
 
 namespace Engine;
 
+use Engine\Traits\ValidatesRequests;
+
 class ControllerBase
 {
+    use ValidatesRequests;
+
     protected $viewEngine;
 
     public function __construct()
