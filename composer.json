@@ -1,0 +1,33 @@
+{
+    "name": "ftwodev/framework",
+    "description": "FTwoDev Framework - A lightweight native PHP framework",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "FTwoDev Team",
+            "email": "dev@ftwodev.com"
+        }
+    ],
+    "require": {
+        "php": "^8.0"
+    },
+    "bin": [
+        "ftwo"
+    ],
+    "autoload": {
+        "psr-4": {
+            "Engine\\": "engine/",
+            "CoreModules\\": "core-modules/",
+            "Projects\\": "projects/"
+        },
+        "files": [
+            "engine/Utils.php"
+        ]
+    },
+    "scripts": {
+        "post-create-project-cmd": [
+            "php install.php"
+        ]
+    }
+}

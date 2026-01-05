@@ -1,0 +1,11 @@
+/vendor
+/node_modules
+.env
+.DS_Store
+/storage/logs/*.log
+!/storage/logs/.gitkeep
+/public/storage
+composer.lock
+phpunit.xml
+.idea
+.vscode
