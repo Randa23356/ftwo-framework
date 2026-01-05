@@ -31,6 +31,33 @@ class ControllerBase
         return $_REQUEST[$key] ?? $default;
     }
 
+    protected function redirect($url)
+    {
+        // Store current URL as previous URL
+        Session::previousUrl($_SERVER['REQUEST_URI'] ?? '/');
+        
+        header("Location: $url");
+        exit;
+    }
+
+    protected function redirectBack()
+    {
+        return $this->redirect(Session::previousUrl() ?: '/');
+    }
+
+    protected function withErrors($errors)
+    {
+        Session::errors($errors);
+        Session::flashInput($_REQUEST);
+        return $this->redirectBack();
+    }
+
+    protected function with($key, $value)
+    {
+        Session::flash($key, $value);
+        return $this;
+    }
+
     protected function validate($rules)
     {
         // Simple validation placeholder
@@ -46,7 +73,7 @@ class ControllerBase
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $token = $_REQUEST['csrf_token'] ?? null;
-            if (!$token || $token !== csrf_token()) {
+            if (!$token || $token !== Session::token()) {
                 throw new \Exception("CSRF Token Mismatch");
             }
         }

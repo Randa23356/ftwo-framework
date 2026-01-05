@@ -135,24 +135,86 @@
 <div class="hero">
     <div class="badge">
         <span style="width: 8px; height: 8px; background: var(--primary); border-radius: 50%; display: inline-block;"></span>
-        Version 1.2.0 is live
+        Version <?= framework_version() ?> is live
     </div>
-    <h1>The Engine for <br><span class="text-gradient">Modern Creators.</span></h1>
-    <p>A native PHP 8 boilerplate built for velocity. FTwoDev gives you the precision of raw PHP with the elegance of a premium framework.</p>
+    
+    <?php if (file_exists(__DIR__ . '/../Controllers/AuthController.php')): ?>
+        <!-- Bloom is installed -->
+        <h1>Welcome Back! <br><span class="text-gradient">Bloom is Ready.</span></h1>
+        <p>Your FTwoDev framework is now equipped with Bloom authentication system. Start building amazing applications with secure user management.</p>
+    <?php else: ?>
+        <!-- Fresh install -->
+        <h1>The Engine for <br><span class="text-gradient">Modern Creators.</span></h1>
+        <p>A native PHP 8 boilerplate built for velocity. FTwoDev gives you the precision of raw PHP with the elegance of a premium framework.</p>
+    <?php endif; ?>
     
     <div class="cta-group">
-        <a href="/login" class="btn">Explore Bloom</a>
-        <a href="https://github.com/Randa23356/ftwo-framework" class="btn" style="background: var(--slate);">Docs & Source</a>
+        <?php if (file_exists(__DIR__ . '/../Controllers/AuthController.php')): ?>
+            <!-- Bloom is installed -->
+            <?php if (session('user_id')): ?>
+                <a href="/dashboard" class="btn">Go to Dashboard</a>
+                <a href="/logout" class="btn" style="background: var(--slate);">Logout</a>
+            <?php else: ?>
+                <a href="/login" class="btn">Login to Dashboard</a>
+                <a href="/register" class="btn" style="background: var(--slate);">Create Account</a>
+            <?php endif; ?>
+        <?php else: ?>
+            <!-- Bloom not installed -->
+            <a href="#install-bloom" class="btn" onclick="showBloomInstall()">Install Bloom Auth</a>
+            <a href="https://github.com/Randa23356/ftwo-framework" class="btn" style="background: var(--slate);">Docs & Source</a>
+        <?php endif; ?>
     </div>
 
     <div class="code-snippet">
-        <span class="prompt">➜</span> <span class="cmd">composer create-project ftwodev/framework</span>
+        <span class="prompt">➜</span> 
+        <?php if (file_exists(__DIR__ . '/../Controllers/AuthController.php')): ?>
+            <span class="cmd">php ftwo ignite</span>
+        <?php else: ?>
+            <span class="cmd">composer create-project ftwodev/framework</span>
+        <?php endif; ?>
     </div>
 </div>
 
 <div class="features-title">
-    <h2>Everything you need <br><span class="text-gradient">to scale.</span></h2>
+    <?php if (file_exists(__DIR__ . '/../Controllers/AuthController.php')): ?>
+        <h2>Your Framework is <br><span class="text-gradient">Ready to Scale.</span></h2>
+    <?php else: ?>
+        <h2>Everything you need <br><span class="text-gradient">to scale.</span></h2>
+    <?php endif; ?>
 </div>
+
+<?php if (!file_exists(__DIR__ . '/../Controllers/AuthController.php')): ?>
+<!-- Show installation guide for fresh install -->
+<div class="grid" style="margin-bottom: 4rem;">
+    <div class="card" style="grid-column: 1 / -1; text-align: center; background: linear-gradient(135deg, rgba(5, 150, 105, 0.05), rgba(45, 212, 191, 0.03));">
+        <div class="icon-box" style="margin: 0 auto 2rem;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </div>
+        <h3 style="margin-bottom: 1rem;">Ready to Add Authentication?</h3>
+        <p style="margin-bottom: 2rem;">Install Bloom Auth system to get login, registration, and user management in seconds.</p>
+        <div class="code-snippet" style="background: #020617; color: #94a3b8; padding: 1rem 1.5rem; border-radius: 12px; display: inline-block; font-family: 'JetBrains Mono', monospace;">
+            <span style="color: var(--primary);">➜</span> <span style="color: #f8fafc; font-weight: 600;">php ftwo ignite:bloom</span>
+        </div>
+    </div>
+</div>
+<?php else: ?>
+<!-- Show status for Bloom installed -->
+<div class="grid" style="margin-bottom: 4rem;">
+    <div class="card" style="grid-column: 1 / -1; text-align: center; background: linear-gradient(135deg, rgba(5, 150, 105, 0.1), rgba(45, 212, 191, 0.05)); border: 2px solid rgba(5, 150, 105, 0.2);">
+        <div class="icon-box" style="margin: 0 auto 2rem; background: rgba(5, 150, 105, 0.15);">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22,4 12,14.01 9,11.01"></polyline></svg>
+        </div>
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">🌸 Bloom Auth System Active</h3>
+        <p style="margin-bottom: 2rem;">Your framework is equipped with authentication, user management, and protected routes.</p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <span style="background: rgba(5, 150, 105, 0.1); color: var(--primary); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">✓ Login System</span>
+            <span style="background: rgba(5, 150, 105, 0.1); color: var(--primary); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">✓ User Registration</span>
+            <span style="background: rgba(5, 150, 105, 0.1); color: var(--primary); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">✓ Protected Routes</span>
+            <span style="background: rgba(5, 150, 105, 0.1); color: var(--primary); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">✓ Session Management</span>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="grid">
     <div class="card">
@@ -204,3 +266,37 @@
     </div>
 </div>
 
+
+<?php if (!file_exists(__DIR__ . '/../Controllers/AuthController.php')): ?>
+<script>
+function showBloomInstall() {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
+        z-index: 10000; backdrop-filter: blur(10px);
+    `;
+    
+    modal.innerHTML = \`
+        <div style="background: white; padding: 3rem; border-radius: 20px; max-width: 500px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div style="width: 64px; height: 64px; background: rgba(5, 150, 105, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; border-radius: 20px; margin: 0 auto 2rem; font-size: 2rem;">
+                🌸
+            </div>
+            <h3 style="margin-bottom: 1rem; color: var(--slate);">Install Bloom Auth System</h3>
+            <p style="color: #64748b; margin-bottom: 2rem;">Run this command in your terminal to install the complete authentication system:</p>
+            <div style="background: #020617; color: #94a3b8; padding: 1.5rem; border-radius: 12px; font-family: 'JetBrains Mono', monospace; margin-bottom: 2rem; text-align: left;">
+                <div style="margin-bottom: 0.5rem;"><span style="color: var(--primary);">➜</span> <span style="color: #f8fafc; font-weight: 600;">php ftwo ignite:bloom</span></div>
+                <div style="margin-bottom: 0.5rem;"><span style="color: var(--primary);">➜</span> <span style="color: #f8fafc; font-weight: 600;">php ftwo ignite:migrate</span></div>
+                <div><span style="color: var(--primary);">➜</span> <span style="color: #f8fafc; font-weight: 600;">php ftwo ignite</span></div>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" style="background: var(--primary); color: white; border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                Got it!
+            </button>
+        </div>
+    \`;
+    
+    document.body.appendChild(modal);
+    modal.onclick = (e) => e.target === modal && modal.remove();
+}
+</script>
+<?php endif; ?>

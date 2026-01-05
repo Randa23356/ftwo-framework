@@ -22,6 +22,13 @@ class ViewEngine
             throw new \Exception("View file not found: {$templatePath}");
         }
 
+        // Add session data to view data
+        $data['errors'] = Session::flash('errors') ?: [];
+        $data['message'] = Session::flash('message');
+        $data['success'] = Session::flash('success');
+        $data['warning'] = Session::flash('warning');
+        $data['info'] = Session::flash('info');
+
         // Extract data to generic variables
         extract($data, EXTR_SKIP);
 

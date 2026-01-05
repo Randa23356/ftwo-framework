@@ -4,20 +4,23 @@ namespace Engine;
 
 class Boot
 {
+    const VERSION = '1.4.0';
+    
     private static $config = [];
 
     public static function run()
     {
-        // 1. Load Config
+        // 1. Load Environment Variables
+        Env::load();
+
+        // 2. Load Config
         self::loadConfig();
 
-        // 2. Start Session
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
+        // 3. Start Session
+        Session::start();
 
-        // 3. Error Handling
-        if (self::env('APP_DEBUG', true)) {
+        // 4. Error Handling
+        if (config('app.debug', true)) {
             ini_set('display_errors', 1);
             ini_set('display_startup_errors', 1);
             error_reporting(E_ALL);
@@ -26,7 +29,7 @@ class Boot
             error_reporting(0);
         }
 
-        // 4. Dispatch Router
+        // 5. Dispatch Router
         try {
             $router = new Router();
             require_once __DIR__ . '/../config/routes.php';
@@ -64,21 +67,14 @@ class Boot
 
     public static function env($key, $default = null)
     {
-        // Basic env simulation or load from generic config
-        // In real world, use .env parser. Here we assume constants or config.
-        // For simplicity, we check $_ENV or getenv
-        $val = getenv($key);
-        if ($val === false) {
-             return $_ENV[$key] ?? $default;
-        }
-        return $val;
+        return Env::get($key, $default);
     }
 
     private static function handleException($e)
     {
         echo "<h1>FTwoDev Framework Error</h1>";
         echo "<p>" . $e->getMessage() . "</p>";
-        if (self::env('APP_DEBUG', true)) {
+        if (config('app.debug', true)) {
              echo "<pre>" . $e->getTraceAsString() . "</pre>";
         }
     }

@@ -52,11 +52,25 @@ class Console
             case 'ignite:rollback':
                 $this->rollback();
                 break;
+            case 'ignite:fresh':
+                $this->migrateFresh();
+                break;
             case 'ignite:bloom':
                 $this->installBloom();
                 break;
             case 'ignite:setup':
                 $this->setupFramework();
+                break;
+            case 'ignite:env':
+                $this->generateEnv();
+                break;
+            case 'make:session-table':
+                $this->makeSessionTable();
+                break;
+            case 'version':
+            case '--version':
+            case '-v':
+                $this->showVersion();
                 break;
             case 'ignite:refresh':
                 $this->refresh();
@@ -82,7 +96,7 @@ class Console
         echo "  {$this->colors['green']} ██║        ██║   ╚███╔███╔╝╚██████╔╝██████╔╝███████╗ ╚████╔╝  {$this->colors['reset']}\n";
         echo "  {$this->colors['green']} ╚═╝        ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═════╝ ╚══════╝  ╚═══╝   {$this->colors['reset']}\n";
         echo "  {$this->colors['gray']} ---------------------------------------------------------------- {$this->colors['reset']}\n";
-        echo "  {$this->colors['white']}   FTwoDev Engine v1.2.0 {$this->colors['gray']} | {$this->colors['green']} Advanced Native PHP Framework {$this->colors['reset']}\n\n";
+        echo "  {$this->colors['white']}   FTwoDev Engine v" . \Engine\Boot::VERSION . " {$this->colors['gray']} | {$this->colors['green']} Advanced Native PHP Framework {$this->colors['reset']}\n\n";
     }
 
     private function help()
@@ -93,8 +107,10 @@ class Console
         echo "    {$this->colors['green']}ignite{$this->colors['reset']}              Start development engine\n";
         echo "    {$this->colors['green']}ignite:migrate{$this->colors['reset']}      Run database migrations\n";
         echo "    {$this->colors['green']}ignite:rollback{$this->colors['reset']}     Rollback last migration batch\n";
+        echo "    {$this->colors['green']}ignite:fresh{$this->colors['reset']}        Drop all tables & re-run migrations\n";
         echo "    {$this->colors['green']}ignite:bloom{$this->colors['reset']}        Plant Bloom Auth Starter Kit\n";
         echo "    {$this->colors['green']}ignite:setup{$this->colors['reset']}        Setup basic framework structure\n";
+        echo "    {$this->colors['green']}ignite:env{$this->colors['reset']}          Generate .env file from .env.example\n";
     echo "    {$this->colors['green']}ignite:refresh{$this->colors['reset']}      Refresh & sync framework classes\n\n";
 
         echo "  {$this->colors['blue']}CRAFT (Scaffolding){$this->colors['reset']}\n";
@@ -102,7 +118,8 @@ class Console
         echo "    {$this->colors['green']}craft:model{$this->colors['reset']}        Create a new Model\n";
         echo "    {$this->colors['green']}craft:view{$this->colors['reset']}         Create a new View\n";
         echo "    {$this->colors['green']}craft:service{$this->colors['reset']}      Create a new Service class\n";
-        echo "    {$this->colors['green']}craft:migration{$this->colors['reset']}    Create a new Migration file\n\n";
+        echo "    {$this->colors['green']}craft:migration{$this->colors['reset']}    Create a new Migration file\n";
+        echo "    {$this->colors['green']}make:session-table{$this->colors['reset']}  Create session table migration\n\n";
     }
 
     private function success($msg) { echo "  {$this->colors['green']}✔ SUCCESS:{$this->colors['reset']} $msg\n"; }
@@ -369,19 +386,19 @@ class Console
         if (file_exists($routesFile)) {
             $routesContent = file_get_contents($routesFile);
             
-            // Check if auth routes already exist
-            if (strpos($routesContent, '/login') === false) {
+            // Check if auth routes already exist (check for actual routes, not comments)
+            if (strpos($routesContent, "Router::get('/login', 'AuthController@showLogin')") === false) {
                 $authRoutes = "\n\n// Auth Routes (Added by Bloom)\n";
-                $authRoutes .= "\$router->get('/login', 'AuthController@showLogin');\n";
-                $authRoutes .= "\$router->post('/login', 'AuthController@login');\n";
-                $authRoutes .= "\$router->get('/register', 'AuthController@showRegister');\n";
-                $authRoutes .= "\$router->post('/register', 'AuthController@register');\n";
-                $authRoutes .= "\$router->get('/logout', 'AuthController@logout');\n";
-                $authRoutes .= "\$router->get('/dashboard', 'DashboardController@index');\n";
+                $authRoutes .= "Router::get('/login', 'AuthController@showLogin');\n";
+                $authRoutes .= "Router::post('/login', 'AuthController@login');\n";
+                $authRoutes .= "Router::get('/register', 'AuthController@showRegister');\n";
+                $authRoutes .= "Router::post('/register', 'AuthController@register');\n";
+                $authRoutes .= "Router::get('/logout', 'AuthController@logout');\n";
+                $authRoutes .= "Router::get('/dashboard', 'DashboardController@index');\n";
                 
-                // Add before the closing PHP tag or at the end
-                if (strpos($routesContent, '?>') !== false) {
-                    $routesContent = str_replace('?>', $authRoutes . "\n?>", $routesContent);
+                // Add before the Magic Routes comment
+                if (strpos($routesContent, '// Magic Routes (Automatic):') !== false) {
+                    $routesContent = str_replace('// Magic Routes (Automatic):', $authRoutes . "\n// Magic Routes (Automatic):", $routesContent);
                 } else {
                     $routesContent .= $authRoutes;
                 }
@@ -493,6 +510,163 @@ class Console
         echo "  1. {$this->colors['blue']}php ftwo ignite{$this->colors['reset']}             - Start development server\n";
         echo "  2. {$this->colors['blue']}php ftwo ignite:bloom{$this->colors['reset']}       - Add authentication (optional)\n";
         echo "  3. {$this->colors['blue']}php ftwo craft:controller{$this->colors['reset']}   - Create new controllers\n\n";
+    }
+
+    private function generateEnv()
+    {
+        $this->banner();
+        $this->info("🔧 Generating .env file...");
+        
+        $exampleFile = __DIR__ . '/../../.env.example';
+        $envFile = __DIR__ . '/../../.env';
+        
+        if (!file_exists($exampleFile)) {
+            $this->error(".env.example file not found!");
+            return;
+        }
+        
+        if (file_exists($envFile)) {
+            echo "  {$this->colors['white']}.env file already exists. Overwrite? [y/N]: {$this->colors['reset']}";
+            $confirm = trim(fgets(STDIN));
+            if (strtolower($confirm) !== 'y') {
+                $this->info("Operation cancelled.");
+                return;
+            }
+        }
+        
+        // Copy .env.example to .env
+        copy($exampleFile, $envFile);
+        
+        // Generate APP_KEY
+        $key = 'base64:' . base64_encode(random_bytes(32));
+        $content = file_get_contents($envFile);
+        $content = str_replace('APP_KEY=', "APP_KEY=$key", $content);
+        file_put_contents($envFile, $content);
+        
+        $this->success(".env file generated successfully!");
+        $this->success("APP_KEY generated: $key");
+        $this->info("Please update your database and other configurations in .env file.");
+    }
+
+    private function makeSessionTable()
+    {
+        $this->banner();
+        $this->info("📋 Creating session table migration...");
+        
+        $timestamp = date('Y_m_d_His');
+        $fileName = $timestamp . '_create_sessions_table.php';
+        $path = __DIR__ . '/../../projects/Migrations/' . $fileName;
+
+        if (!file_exists(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        $template = "<?php\n\nnamespace Projects\\Migrations;\n\nuse Engine\\MigrationBase;\n\nclass CreateSessionsTable extends MigrationBase\n{\n    public function up()\n    {\n        \$this->execute(\"CREATE TABLE sessions (\n            id VARCHAR(255) PRIMARY KEY,\n            user_id BIGINT UNSIGNED NULL,\n            ip_address VARCHAR(45) NULL,\n            user_agent TEXT NULL,\n            payload LONGTEXT NOT NULL,\n            last_activity INT NOT NULL,\n            INDEX sessions_user_id_index (user_id),\n            INDEX sessions_last_activity_index (last_activity)\n        )\");\n    }\n\n    public function down()\n    {\n        \$this->execute(\"DROP TABLE sessions\");\n    }\n}\n";
+
+        file_put_contents($path, $template);
+        $this->success("Session table migration created: $fileName");
+        $this->info("Run 'php ftwo ignite:migrate' to create the sessions table.");
+    }
+
+    private function showVersion()
+    {
+        echo "\n";
+        echo "  {$this->colors['green']} ███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ███████╗██╗   ██╗ {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} ██╔════╝╚══██╔══╝██║    ██║██╔═══██╗██╔══██╗██╔════╝██║   ██║ {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} █████╗     ██║   ██║ █╗ ██║██║   ██║██║  ██║█████╗  ██║   ██║ {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} ██╔══╝     ██║   ██║███╗██║██║   ██║██║  ██║██╔══╝  ╚██╗ ██╔╝ {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} ██║        ██║   ╚███╔███╔╝╚██████╔╝██████╔╝███████╗ ╚████╔╝  {$this->colors['reset']}\n";
+        echo "  {$this->colors['green']} ╚═╝        ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═════╝ ╚══════╝  ╚═══╝   {$this->colors['reset']}\n";
+        echo "  {$this->colors['gray']} ---------------------------------------------------------------- {$this->colors['reset']}\n";
+        echo "  {$this->colors['white']}   FTwoDev Framework v" . \Engine\Boot::VERSION . " {$this->colors['reset']}\n";
+        echo "  {$this->colors['gray']}   Advanced Native PHP Framework {$this->colors['reset']}\n\n";
+    }
+
+    private function migrateFresh()
+    {
+        $this->banner();
+        $this->warning("⚠️  This will DROP ALL TABLES and re-run migrations!");
+        
+        // Ask for confirmation
+        echo "  {$this->colors['white']}Are you sure you want to continue? This action cannot be undone.{$this->colors['reset']}\n";
+        echo "  Type 'yes' to confirm: ";
+        $confirmation = trim(fgets(STDIN));
+        
+        if (strtolower($confirmation) !== 'yes') {
+            $this->info("Operation cancelled.");
+            return;
+        }
+        
+        $this->info("🔥 Starting fresh migration...");
+        
+        try {
+            $db = $this->getDatabaseConnection();
+            
+            // Get all tables in the database
+            $this->info("Dropping all tables...");
+            $stmt = $db->query("SHOW TABLES");
+            $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            
+            if (!empty($tables)) {
+                // Disable foreign key checks
+                $db->exec("SET FOREIGN_KEY_CHECKS = 0");
+                
+                foreach ($tables as $table) {
+                    $db->exec("DROP TABLE IF EXISTS `$table`");
+                    $this->success("Dropped table: $table");
+                }
+                
+                // Re-enable foreign key checks
+                $db->exec("SET FOREIGN_KEY_CHECKS = 1");
+                
+                $this->success("All tables dropped successfully.");
+            } else {
+                $this->info("No tables found to drop.");
+            }
+            
+            // Now run all migrations fresh
+            $this->info("Running all migrations...");
+            $this->ensureMigrationsTable($db);
+            
+            $files = glob(__DIR__ . '/../../projects/Migrations/*.php');
+            sort($files);
+            
+            if (empty($files)) {
+                $this->warning("No migration files found.");
+                return;
+            }
+            
+            $batch = time();
+            $count = 0;
+            
+            foreach ($files as $file) {
+                $name = basename($file, '.php');
+                require_once $file;
+                $parts = explode('_', $name);
+                $className = "Projects\\Migrations\\" . str_replace(' ', '', ucwords(str_replace('_', ' ', implode('_', array_slice($parts, 4)))));
+                
+                if (class_exists($className)) {
+                    $migration = new $className($db);
+                    $migration->up();
+                    
+                    $stmt = $db->prepare("INSERT INTO migrations (migration, batch) VALUES (?, ?)");
+                    $stmt->execute([$name, $batch]);
+                    
+                    $this->success("Migrated: $name");
+                    $count++;
+                } else {
+                    $this->error("Migration class not found: $className");
+                }
+            }
+            
+            echo "\n";
+            $this->success("🚀 Fresh migration completed!");
+            $this->info("Total migrations run: $count");
+            
+        } catch (\Exception $e) {
+            $this->error("Migration failed: " . $e->getMessage());
+            $this->info("Please check your database connection and migration files.");
+        }
     }
 
     private function refresh()

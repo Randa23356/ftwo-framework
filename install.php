@@ -29,26 +29,12 @@ echo "  {$colors['green']} ██╔══╝     ██║   ██║███
 echo "  {$colors['green']} ██║        ██║   ╚███╔███╔╝╚██████╔╝██████╔╝███████╗ ╚████╔╝  {$colors['reset']}\n";
 echo "  {$colors['green']} ╚═╝        ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═════╝ ╚══════╝  ╚═══╝   {$colors['reset']}\n";
 echo "  {$colors['gray']} ---------------------------------------------------------------- {$colors['reset']}\n";
-echo "  {$colors['white']}   CONFIGURING PROJECT... {$colors['gray']} | {$colors['green']} Interactive Setup Wizard {$colors['reset']}\n\n";
+echo "  {$colors['white']}   CONFIGURING PROJECT... {$colors['gray']} | {$colors['green']} FTwoDev Framework v" . \Engine\Boot::VERSION . " {$colors['reset']}\n\n";
 
 // 1. Project Info
 echo "  {$colors['blue']}Project Identification{$colors['reset']}\n";
 $appName = ask("What is your Project Name?", "FTwoDev App", $colors);
 $appUrl = ask("Application URL?", "http://localhost:8000", $colors);
-
-$appFile = 'config/app.php';
-if (file_exists($appFile)) {
-    $content = file_get_contents($appFile);
-    $content = preg_replace("/'name' => '.*'/", "'name' => '$appName'", $content);
-    $content = preg_replace("/'url' => '.*'/", "'url' => '$appUrl'", $content);
-    
-    // Key Generation
-    if (strpos($content, 'base64:GENERATE_YOUR_OWN_KEY_HERE') !== false) {
-        $key = 'base64:' . base64_encode(random_bytes(32));
-        $content = str_replace('base64:GENERATE_YOUR_OWN_KEY_HERE', $key, $content);
-    }
-    file_put_contents($appFile, $content);
-}
 
 // 2. Database Info
 echo "\n  {$colors['blue']}Database Configuration{$colors['reset']}\n";
@@ -57,16 +43,6 @@ if (confirm("Setup database connection now?", "y", $colors)) {
     $dbName = ask("DB Name", "ftwodev_db", $colors);
     $dbUser = ask("DB Username", "root", $colors);
     $dbPass = ask("DB Password", "", $colors);
-
-    $dbFile = 'config/database.php';
-    if (file_exists($dbFile)) {
-        $content = file_get_contents($dbFile);
-        $content = preg_replace("/'host' => '.*'/", "'host' => '$dbHost'", $content);
-        $content = preg_replace("/'dbname' => '.*'/", "'dbname' => '$dbName'", $content);
-        $content = preg_replace("/'username' => '.*'/", "'username' => '$dbUser'", $content);
-        $content = preg_replace("/'password' => '.*'/", "'password' => '$dbPass'", $content);
-        file_put_contents($dbFile, $content);
-    }
 }
 
 // 3. Optional Features
@@ -75,6 +51,30 @@ $installBloom = confirm("Install Bloom Auth Starter Kit immediately?", "n", $col
 
 // 4. Execution
 echo "\n  {$colors['white']}STEP 4: Finalizing Installation...{$colors['reset']}\n";
+
+// Generate .env file
+if (!file_exists('.env') && file_exists('.env.example')) {
+    copy('.env.example', '.env');
+    
+    // Generate APP_KEY
+    $key = 'base64:' . base64_encode(random_bytes(32));
+    $envContent = file_get_contents('.env');
+    $envContent = str_replace('APP_KEY=', "APP_KEY=$key", $envContent);
+    
+    // Update .env with user input
+    $envContent = str_replace('APP_NAME="FTwoDev Application"', "APP_NAME=\"$appName\"", $envContent);
+    $envContent = str_replace('APP_URL=http://localhost:8000', "APP_URL=$appUrl", $envContent);
+    
+    if (isset($dbHost)) {
+        $envContent = str_replace('DB_HOST=127.0.0.1', "DB_HOST=$dbHost", $envContent);
+        $envContent = str_replace('DB_DATABASE=ftwodev_db', "DB_DATABASE=$dbName", $envContent);
+        $envContent = str_replace('DB_USERNAME=root', "DB_USERNAME=$dbUser", $envContent);
+        $envContent = str_replace('DB_PASSWORD=', "DB_PASSWORD=$dbPass", $envContent);
+    }
+    
+    file_put_contents('.env', $envContent);
+    echo "  {$colors['green']}✔{$colors['reset']} .env file generated with APP_KEY.\n";
+}
 
 // Structure
 $directories = ['storage', 'storage/logs', 'public', 'config'];

@@ -14,11 +14,9 @@ use Engine\Router;
  * /name/action -> NameController::action()
  */
 
-Router::get('/', 'WelcomeController@index');
-
-
-// Default Routes
-Router::get('/about', 'HomeController@about');
+Router::get('/', function() {
+    return view('welcome');
+});
 
 // Examples (Manual):
 // Router::get('/login', 'AuthController@loginForm');
@@ -26,4 +24,3 @@ Router::get('/about', 'HomeController@about');
 // Magic Routes (Automatic):
 // /dashboard       -> DashboardController::index()
 // /auth/login      -> AuthController::login()
-
