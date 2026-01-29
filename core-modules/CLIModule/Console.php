@@ -460,13 +460,36 @@ class Console
         try {
             return new \PDO($dsn, $config['username'], $config['password'], $config['options']);
         } catch (\PDOException $e) {
-            // Check if database does not exist
+            
+            // 1. Handle Socket Error Fallback (localhost -> 127.0.0.1)
+            // We check this FIRST so that if the fallback connection fails with "Unknown database", 
+            // it gets caught by the next block.
+            if (strpos($e->getMessage(), 'No such file or directory') !== false && $config['host'] === 'localhost') {
+                $this->warning("Socket connection failed (No such file or directory).");
+                $this->info("Switching to 127.0.0.1 (TCP)...");
+                
+                // Update config to use TCP
+                $config['host'] = '127.0.0.1'; 
+                $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
+                
+                try {
+                    // Try connecting again with new host
+                    return new \PDO($dsn, $config['username'], $config['password'], $config['options']);
+                } catch (\PDOException $ex) {
+                    // If this fails (e.g. Unknown database), update the main exception variable
+                    // so the next block can handle it.
+                    $e = $ex; 
+                }
+            }
+
+            // 2. Handle Unknown Database (Auto-Create)
+            // This checks $e, which might be the original error OR the error from the TCP fallback above.
             if (strpos($e->getMessage(), 'Unknown database') !== false) {
                 $this->warning("Database '{$config['dbname']}' does not exist.");
                 $this->info("Attempting to create it automatically...");
                 
                 try {
-                    // Convert DSN to connect without database name
+                    // Connect without database name (using potentially updated host)
                     $hostDsn = "mysql:host={$config['host']};port={$config['port']};charset={$config['charset']}";
                     $tempPdo = new \PDO($hostDsn, $config['username'], $config['password'], $config['options']);
                     
@@ -474,43 +497,24 @@ class Console
                     $tempPdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['dbname']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
                     $this->success("Database '{$config['dbname']}' created successfully!");
                     
-                    // Retry original connection
+                    // Retry original connection (using potentially updated DSN)
                     return new \PDO($dsn, $config['username'], $config['password'], $config['options']);
                     
                 } catch (\PDOException $ex) {
                     $this->error("Failed to auto-create database: " . $ex->getMessage());
-                    // Continue to standard error reporting below
                 }
             }
 
+            // 3. Fallback Error Reporting
             $this->error("Database Connection Failed!");
             $this->error("Error: " . $e->getMessage());
             
             if (strpos($e->getMessage(), 'No such file or directory') !== false) {
-                // Check if we are using localhost, which tries to use socket
-                if ($config['host'] === 'localhost') {
-                    $this->warning("Socket connection failed (No such file or directory).");
-                    $this->info("Switching to 127.0.0.1 (TCP)...");
-                    
-                    try {
-                        // Modify DSN to use 127.0.0.1
-                        $tcpDsn = "mysql:host=127.0.0.1;port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
-                        $pdo = new \PDO($tcpDsn, $config['username'], $config['password'], $config['options']);
-                        $this->success("Connected via TCP (127.0.0.1)!");
-                        return $pdo;
-                    } catch (\PDOException $ex) {
-                         // Fallback failed, continue to error reporting
-                    }
-                }
-
                 $this->error("MySQL server is not running or not installed.");
                 $this->info("To fix this:");
                 $this->info("1. Install MySQL: brew install mysql");
                 $this->info("2. Start MySQL: brew services start mysql");
                 $this->info("3. Or use Docker: docker run --name mysql -e MYSQL_ROOT_PASSWORD=password -p 3306:3306 mysql:8.0");
-            } elseif (strpos($e->getMessage(), 'Unknown database') !== false) {
-                // This block is kept as fallback if auto-creation fails
-                $this->info("Create database: mysql -u {$config['username']} -p -e \"CREATE DATABASE {$config['dbname']}\"");
             } elseif (strpos($e->getMessage(), 'Access denied') !== false) {
                 $this->error("Access denied for user '{$config['username']}'.");
                 $this->info("Check your username and password in .env file");
