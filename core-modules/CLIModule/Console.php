@@ -540,11 +540,19 @@ class Console
         
         // 5. Create User Migration
         $this->info("Creating User migration...");
-        $timestamp = date('Y_m_d_His');
-        $migrationFileName = $timestamp . '_create_users_table.php';
-        $migrationStub = file_get_contents($stubsPath . 'migration.stub');
-        file_put_contents($projectsPath . 'Migrations/' . $migrationFileName, $migrationStub);
-        $this->success("User migration created: $migrationFileName");
+        
+        // Check if user migration already exists
+        $existingMigrations = glob($projectsPath . 'Migrations/*_create_users_table.php');
+        
+        if (!empty($existingMigrations)) {
+            $this->warning("User migration already exists: " . basename($existingMigrations[0]));
+        } else {
+            $timestamp = date('Y_m_d_His');
+            $migrationFileName = $timestamp . '_create_users_table.php';
+            $migrationStub = file_get_contents($stubsPath . 'migration.stub');
+            file_put_contents($projectsPath . 'Migrations/' . $migrationFileName, $migrationStub);
+            $this->success("User migration created: $migrationFileName");
+        }
         
         // 6. Create Auth Views
         $viewsPath = $projectsPath . 'Views/auth/';
