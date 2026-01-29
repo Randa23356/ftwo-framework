@@ -748,7 +748,8 @@ class Console
         if (file_exists($routesFile)) {
             $routesContent = file_get_contents($routesFile);
             
-            // Replace closure route with controller route
+            
+            // Replace closure route with controller route (if exists)
             if (strpos($routesContent, "Router::get('/', function()") !== false) {
                 $routesContent = str_replace(
                     "Router::get('/', function() {\n    return view('welcome');\n});",
@@ -756,6 +757,17 @@ class Console
                     $routesContent
                 );
                 $this->success("Updated home route to use WelcomeController.");
+            } 
+            // If home route is completely missing, restore it
+            elseif (strpos($routesContent, "Router::get('/',") === false) {
+                 $homeRoute = "Router::get('/', 'WelcomeController@index');\n";
+                 
+                 if (strpos($routesContent, '// Examples (Manual):') !== false) {
+                     $routesContent = str_replace('// Examples (Manual):', $homeRoute . "\n// Examples (Manual):", $routesContent);
+                 } else {
+                     $routesContent .= "\n" . $homeRoute;
+                 }
+                 $this->success("Restored home route.");
             }
             
             // Add about route if it doesn't exist
