@@ -58,8 +58,17 @@ class Console
             case 'ignite:bloom':
                 $this->installBloom();
                 break;
+            case 'ignite:bloom-refresh':
+                $this->refreshBloom();
+                break;
+            case 'ignite:bloom-reset':
+                $this->resetBloom();
+                break;
             case 'ignite:setup':
                 $this->setupFramework();
+                break;
+            case 'ignite:setup-reset':
+                $this->resetSetup();
                 break;
             case 'ignite:env':
                 $this->generateEnv();
@@ -115,7 +124,10 @@ class Console
         echo "    {$this->colors['green']}ignite:rollback{$this->colors['reset']}     Rollback last migration batch\n";
         echo "    {$this->colors['green']}ignite:fresh{$this->colors['reset']}        Drop all tables & re-run migrations\n";
         echo "    {$this->colors['green']}ignite:bloom{$this->colors['reset']}        Plant Bloom Auth Starter Kit\n";
+        echo "    {$this->colors['green']}ignite:bloom-refresh{$this->colors['reset']} Refresh/Reinstall Bloom Auth\n";
+        echo "    {$this->colors['green']}ignite:bloom-reset{$this->colors['reset']}   Remove Bloom Auth (clean reset)\n";
         echo "    {$this->colors['green']}ignite:setup{$this->colors['reset']}        Setup basic framework structure\n";
+        echo "    {$this->colors['green']}ignite:setup-reset{$this->colors['reset']}  Remove setup files (clean reset)\n";
         echo "    {$this->colors['green']}ignite:env{$this->colors['reset']}          Generate .env file from .env.example\n";
         echo "    {$this->colors['green']}ignite:refresh{$this->colors['reset']}      Refresh & sync framework classes\n\n";
 
@@ -725,6 +737,94 @@ class Console
         echo "  3. {$this->colors['blue']}php ftwo craft:controller{$this->colors['reset']}   - Create new controllers\n\n";
     }
 
+    private function resetSetup()
+    {
+        $this->banner();
+        $this->warning("⚠️  This will REMOVE files created by ignite:setup!");
+        $this->info("This will:");
+        $this->info("  • Remove WelcomeController.php");
+        $this->info("  • Remove HomeController.php");
+        $this->info("  • Remove about.ftwo.php view");
+        $this->info("  • Remove default routes from routes.php");
+        $this->info("  • Framework will return to CLEAN state");
+        
+        // Ask for confirmation
+        echo "\n  {$this->colors['white']}Are you sure you want to continue?{$this->colors['reset']}\n";
+        echo "  Type 'yes' to confirm: ";
+        $confirmation = trim(fgets(STDIN));
+        
+        if (strtolower($confirmation) !== 'yes') {
+            $this->info("Operation cancelled.");
+            return;
+        }
+        
+        $this->info("🧹 Starting setup reset...");
+        
+        $projectsPath = __DIR__ . '/../../projects/';
+        
+        // Remove controllers
+        $controllersToRemove = [
+            $projectsPath . 'Controllers/WelcomeController.php',
+            $projectsPath . 'Controllers/HomeController.php',
+        ];
+        
+        foreach ($controllersToRemove as $file) {
+            if (file_exists($file)) {
+                unlink($file);
+                $this->success("Removed: " . basename($file));
+            }
+        }
+        
+        // Remove about view
+        $aboutView = $projectsPath . 'Views/about.ftwo.php';
+        if (file_exists($aboutView)) {
+            unlink($aboutView);
+            $this->success("Removed: about.ftwo.php");
+        }
+        
+        // Clean up routes.php
+        $this->removeDefaultRoutes();
+        
+        // Refresh autoload
+        $this->info("Refreshing autoload classes...");
+        shell_exec('composer dump-autoload');
+        
+        echo "\n";
+        $this->success("✨ Setup files removed successfully!");
+        $this->info("Framework is now in CLEAN state (pre-setup).");
+        $this->info("\nNext steps:");
+        $this->info("1. php ftwo ignite:setup     - Re-run setup if needed");
+        $this->info("2. php ftwo craft:controller - Create your own controllers");
+    }
+
+    private function removeDefaultRoutes()
+    {
+        $routesFile = __DIR__ . '/../../config/routes.php';
+        
+        if (!file_exists($routesFile)) {
+            return;
+        }
+        
+        $routesContent = file_get_contents($routesFile);
+        
+        // Remove default routes section and individual routes
+        $patterns = [
+            "/\n\/\/ Default Routes.*?(?=\n\/\/|$)/s",
+            "/Router::get\('\/', 'WelcomeController@index'\);.*?\n/",
+            "/Router::get\('\/about', 'HomeController@about'\);.*?\n/",
+        ];
+        
+        foreach ($patterns as $pattern) {
+            $routesContent = preg_replace($pattern, '', $routesContent);
+        }
+        
+        // Clean up extra newlines
+        $routesContent = preg_replace("/\n{3,}/", "\n\n", $routesContent);
+        
+        file_put_contents($routesFile, $routesContent);
+        $this->success("Removed default routes from routes.php");
+    }
+
     private function generateEnv()
     {
         $this->banner();
@@ -887,6 +987,167 @@ class Console
         $this->info("Refreshing framework classes... 🔄");
         shell_exec('composer dump-autoload');
         $this->success("Class map rebuilt successfully! Everything is synced.");
+    }
+
+    private function refreshBloom()
+    {
+        $this->banner();
+        $this->warning("⚠️  This will REMOVE and REINSTALL Bloom Auth!");
+        $this->info("All auth files will be regenerated from stubs.");
+        
+        // Ask for confirmation
+        echo "  {$this->colors['white']}Are you sure you want to continue?{$this->colors['reset']}\n";
+        echo "  Type 'yes' to confirm: ";
+        $confirmation = trim(fgets(STDIN));
+        
+        if (strtolower($confirmation) !== 'yes') {
+            $this->info("Operation cancelled.");
+            return;
+        }
+        
+        $this->info("🔄 Starting Bloom refresh...");
+        
+        // Remove existing Bloom files
+        $this->removeBloomFiles();
+        
+        // Reinstall Bloom
+        $this->info("Reinstalling Bloom Auth...");
+        $this->installBloom();
+        
+        echo "\n";
+        $this->success("🌸 Bloom Auth refreshed successfully!");
+        $this->info("Run 'php ftwo ignite:refresh' to sync autoload classes.");
+    }
+
+    private function resetBloom()
+    {
+        $this->banner();
+        $this->warning("⚠️  This will COMPLETELY REMOVE Bloom Auth!");
+        $this->info("This will:");
+        $this->info("  • Remove all auth controllers, models, and views");
+        $this->info("  • Remove auth routes from routes.php");
+        $this->info("  • Remove user migration files");
+        $this->info("  • Remove AuthModule (if exists)");
+        
+        // Ask for confirmation
+        echo "\n  {$this->colors['white']}Are you sure you want to continue?{$this->colors['reset']}\n";
+        echo "  Type 'yes' to confirm: ";
+        $confirmation = trim(fgets(STDIN));
+        
+        if (strtolower($confirmation) !== 'yes') {
+            $this->info("Operation cancelled.");
+            return;
+        }
+        
+        $this->info("🧹 Starting Bloom reset...");
+        
+        // Remove Bloom files
+        $this->removeBloomFiles();
+        
+        // Remove auth routes
+        $this->removeAuthRoutes();
+        
+        echo "\n";
+        $this->success("✨ Bloom Auth removed successfully!");
+        $this->info("Framework is now back to clean state.");
+        $this->info("\nNext steps:");
+        $this->info("1. php ftwo ignite:refresh     - Refresh autoload classes");
+    }
+
+    private function removeBloomFiles()
+    {
+        $projectsPath = __DIR__ . '/../../projects/';
+        
+        // Files to remove
+        $filesToRemove = [
+            $projectsPath . 'Controllers/AuthController.php',
+            $projectsPath . 'Controllers/DashboardController.php',
+            $projectsPath . 'Middlewares/AuthMiddleware.php',
+            $projectsPath . 'Models/User.php',
+            $projectsPath . 'Views/auth/login.ftwo.php',
+            $projectsPath . 'Views/auth/register.ftwo.php',
+            $projectsPath . 'Views/auth/dashboard.ftwo.php',
+        ];
+        
+        foreach ($filesToRemove as $file) {
+            if (file_exists($file)) {
+                unlink($file);
+                $this->success("Removed: " . basename($file));
+            }
+        }
+        
+        // Remove auth views directory if empty
+        $authViewsPath = $projectsPath . 'Views/auth/';
+        if (is_dir($authViewsPath) && count(scandir($authViewsPath)) == 2) {
+            rmdir($authViewsPath);
+            $this->success("Removed empty auth views directory");
+        }
+        
+        // Remove user migration files
+        $migrationsPath = $projectsPath . 'Migrations/';
+        if (is_dir($migrationsPath)) {
+            $migrationFiles = glob($migrationsPath . '*create_users_table.php');
+            foreach ($migrationFiles as $migrationFile) {
+                if (file_exists($migrationFile)) {
+                    unlink($migrationFile);
+                    $this->success("Removed: " . basename($migrationFile));
+                }
+            }
+        }
+        
+        // Remove AuthModule if exists
+        $authModulePath = __DIR__ . '/../AuthModule/';
+        if (is_dir($authModulePath)) {
+            $this->removeDirectory($authModulePath);
+            $this->success("Removed AuthModule");
+        }
+    }
+
+    private function removeAuthRoutes()
+    {
+        $routesFile = __DIR__ . '/../../config/routes.php';
+        
+        if (!file_exists($routesFile)) {
+            return;
+        }
+        
+        $routesContent = file_get_contents($routesFile);
+        
+        // Remove auth routes section
+        $patterns = [
+            "/\n\/\/ Auth Routes \(Added by Bloom\).*?(?=\n\/\/|$)/s",
+            "/Router::get\('\/login',.*?\n/",
+            "/Router::post\('\/login',.*?\n/",
+            "/Router::get\('\/register',.*?\n/",
+            "/Router::post\('\/register',.*?\n/",
+            "/Router::get\('\/logout',.*?\n/",
+            "/Router::get\('\/dashboard',.*?\n/",
+        ];
+        
+        foreach ($patterns as $pattern) {
+            $routesContent = preg_replace($pattern, '', $routesContent);
+        }
+        
+        // Clean up extra newlines
+        $routesContent = preg_replace("/\n{3,}/", "\n\n", $routesContent);
+        
+        file_put_contents($routesFile, $routesContent);
+        $this->success("Removed auth routes from routes.php");
+    }
+
+    private function removeDirectory($dir)
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir . '/' . $file;
+            is_dir($path) ? $this->removeDirectory($path) : unlink($path);
+        }
+        
+        rmdir($dir);
     }
 
     private function findSocketPath()
