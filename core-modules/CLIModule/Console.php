@@ -1040,6 +1040,26 @@ class Console
         }
         
         $this->info("🧹 Starting Bloom reset...");
+
+        // Clean up database (users table & migrations)
+        try {
+            $db = $this->getDatabaseConnection();
+            
+            // Drop users table
+            $db->exec("DROP TABLE IF EXISTS users");
+            $this->success("Dropped table: users");
+
+            // Remove migration record
+            $stmt = $db->prepare("DELETE FROM migrations WHERE migration LIKE ?");
+            $stmt->execute(['%_create_users_table']);
+            $count = $stmt->rowCount();
+            if ($count > 0) {
+                 $this->success("Removed $count migration record(s) for users table.");
+            }
+        } catch (\Exception $e) {
+            $this->warning("Database cleanup skipped/failed: " . $e->getMessage());
+        }
+
         
         // Remove Bloom files
         $this->removeBloomFiles();
