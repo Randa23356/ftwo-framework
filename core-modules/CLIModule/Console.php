@@ -487,6 +487,22 @@ class Console
             $this->error("Error: " . $e->getMessage());
             
             if (strpos($e->getMessage(), 'No such file or directory') !== false) {
+                // Check if we are using localhost, which tries to use socket
+                if ($config['host'] === 'localhost') {
+                    $this->warning("Socket connection failed (No such file or directory).");
+                    $this->info("Switching to 127.0.0.1 (TCP)...");
+                    
+                    try {
+                        // Modify DSN to use 127.0.0.1
+                        $tcpDsn = "mysql:host=127.0.0.1;port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
+                        $pdo = new \PDO($tcpDsn, $config['username'], $config['password'], $config['options']);
+                        $this->success("Connected via TCP (127.0.0.1)!");
+                        return $pdo;
+                    } catch (\PDOException $ex) {
+                         // Fallback failed, continue to error reporting
+                    }
+                }
+
                 $this->error("MySQL server is not running or not installed.");
                 $this->info("To fix this:");
                 $this->info("1. Install MySQL: brew install mysql");
