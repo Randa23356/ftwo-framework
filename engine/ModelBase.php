@@ -54,18 +54,41 @@ class ModelBase
         $config = \Engine\Boot::config('database');
         
         try {
-            // Try socket connection first (for XAMPP, MAMP, etc.)
-            $socketPath = $this->findSocketPath();
-            if ($socketPath && file_exists($socketPath)) {
+            $dsn = "";
+
+            // 1. Explicit Socket Configuration or Localhost with Socket Discovery
+            $socketPath = $config['socket'] ?? null;
+            
+            // If host is localhost, try to find a socket if one isn't explicitly set
+            if ($config['host'] === 'localhost' && empty($socketPath)) {
+                $socketPath = $this->findSocketPath();
+            }
+
+            if (!empty($socketPath) && file_exists($socketPath)) {
+                // Try Socket Connection
                 $dsn = "mysql:unix_socket={$socketPath};dbname={$config['dbname']};charset={$config['charset']}";
+                
+                try {
+                     self::$db = new PDO($dsn, $config['username'], $config['password']);
+                } catch (PDOException $e) {
+                    // Check for socket "No such file" error and fallback to TCP if using localhost
+                    if (strpos($e->getMessage(), 'No such file') !== false && $config['host'] === 'localhost') {
+                        // FALLBACK: Switch to 127.0.0.1 (TCP)
+                        $dsn = "mysql:host=127.0.0.1;port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
+                        self::$db = new PDO($dsn, $config['username'], $config['password']);
+                    } else {
+                        throw $e; // Re-throw other errors
+                    }
+                }
             } else {
-                // Fallback to TCP connection
+                // 2. Standard TCP Connection (for 127.0.0.1, remote hosts, etc.)
                 $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}";
+                self::$db = new PDO($dsn, $config['username'], $config['password']);
             }
             
-            self::$db = new PDO($dsn, $config['username'], $config['password']);
             self::$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             self::$db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            
         } catch (PDOException $e) {
             throw new \Exception("Database Connection Error: " . $e->getMessage());
         }

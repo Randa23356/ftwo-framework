@@ -1,7 +1,7 @@
 {
     "name": "ftwodev/framework",
     "description": "FTwoDev Framework - A lightweight native PHP framework",
-    "version": "1.5.7",
+    "version": "1.5.8",
     "type": "project",
     "license": "MIT",
     "authors": [
