@@ -457,6 +457,29 @@ class Console
         try {
             return new \PDO($dsn, $config['username'], $config['password'], $config['options']);
         } catch (\PDOException $e) {
+            // Check if database does not exist
+            if (strpos($e->getMessage(), 'Unknown database') !== false) {
+                $this->warning("Database '{$config['dbname']}' does not exist.");
+                $this->info("Attempting to create it automatically...");
+                
+                try {
+                    // Convert DSN to connect without database name
+                    $hostDsn = "mysql:host={$config['host']};port={$config['port']};charset={$config['charset']}";
+                    $tempPdo = new \PDO($hostDsn, $config['username'], $config['password'], $config['options']);
+                    
+                    // Create database
+                    $tempPdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['dbname']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                    $this->success("Database '{$config['dbname']}' created successfully!");
+                    
+                    // Retry original connection
+                    return new \PDO($dsn, $config['username'], $config['password'], $config['options']);
+                    
+                } catch (\PDOException $ex) {
+                    $this->error("Failed to auto-create database: " . $ex->getMessage());
+                    // Continue to standard error reporting below
+                }
+            }
+
             $this->error("Database Connection Failed!");
             $this->error("Error: " . $e->getMessage());
             
@@ -467,7 +490,7 @@ class Console
                 $this->info("2. Start MySQL: brew services start mysql");
                 $this->info("3. Or use Docker: docker run --name mysql -e MYSQL_ROOT_PASSWORD=password -p 3306:3306 mysql:8.0");
             } elseif (strpos($e->getMessage(), 'Unknown database') !== false) {
-                $this->error("Database '{$config['dbname']}' does not exist.");
+                // This block is kept as fallback if auto-creation fails
                 $this->info("Create database: mysql -u {$config['username']} -p -e \"CREATE DATABASE {$config['dbname']}\"");
             } elseif (strpos($e->getMessage(), 'Access denied') !== false) {
                 $this->error("Access denied for user '{$config['username']}'.");
